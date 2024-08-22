@@ -22,10 +22,15 @@ use esp_hal::{
 };
 use heapless::String;
 use profont::PROFONT_24_POINT;
-use weact_studio_epd::{graphics::Display290BlackWhite, Color};
+// use weact_studio_epd::{graphics::Display290BlackWhite, Color};
+// use weact_studio_epd::{
+//     graphics::DisplayRotation,
+//     WeActStudio290BlackWhiteDriver,
+// };
+use weact_studio_epd::graphics::{Display290TriColor, DisplayTriColor};
 use weact_studio_epd::{
     graphics::DisplayRotation,
-    WeActStudio290BlackWhiteDriver,
+    TriColor, WeActStudio290TriColorDriver,
 };
 
 #[entry]
@@ -41,12 +46,20 @@ fn main() -> ! {
     log::info!("Intializing SPI Bus...");
 
     // Pins for Seeedstudio XIAO ESP32-C6
-    let sclk = io.pins.gpio19; // D8 / GPIO19
-    let mosi = io.pins.gpio18; // D10 / GPIO18
-    let cs = io.pins.gpio20; // D9 / GPIO20
-    let dc = io.pins.gpio21; // D3 / GPIO21
-    let rst = io.pins.gpio22; // D4 / GPIO22
-    let busy = io.pins.gpio23; // D5 / GPIO23
+    // let sclk = io.pins.gpio19; // D8 / GPIO19
+    // let mosi = io.pins.gpio18; // D10 / GPIO18
+    // let cs = io.pins.gpio20; // D9 / GPIO20
+    // let dc = io.pins.gpio21; // D3 / GPIO21
+    // let rst = io.pins.gpio22; // D4 / GPIO22
+    // let busy = io.pins.gpio23; // D5 / GPIO23
+
+    // Pins for ESP32-C6 DevKit
+    let sclk = io.pins.gpio6;
+    let mosi = io.pins.gpio7;
+    let cs = io.pins.gpio15;
+    let dc = io.pins.gpio21;
+    let rst = io.pins.gpio22;
+    let busy = io.pins.gpio23;
 
     let spi_bus = Spi::new(peripherals.SPI2, 100.kHz(), SpiMode::Mode0, &clocks).with_pins(
         Some(sclk),
@@ -73,16 +86,25 @@ fn main() -> ! {
 
     // Setup EPD
     log::info!("Intializing EPD...");
-    let mut driver = WeActStudio290BlackWhiteDriver::new(spi_interface, busy, rst, delay);
-    let mut display = Display290BlackWhite::new();
+    // let mut driver = WeActStudio290BlackWhiteDriver::new(spi_interface, busy, rst, delay);
+    // let mut display = Display290BlackWhite::new();
+    // display.set_rotation(DisplayRotation::Rotate90);
+    // driver.init().unwrap();
+    let mut driver = WeActStudio290TriColorDriver::new(spi_interface, busy, rst, delay);
+    let mut display = Display290TriColor::new();
     display.set_rotation(DisplayRotation::Rotate90);
     driver.init().unwrap();
+    log::info!("Display initialized.");
 
-    let style = MonoTextStyle::new(&PROFONT_24_POINT, Color::Black);
+    //let style = MonoTextStyle::new(&PROFONT_24_POINT, Color::Black);
+    let black_style = MonoTextStyle::new(&PROFONT_24_POINT, TriColor::Black);
+    let red_style = MonoTextStyle::new(&PROFONT_24_POINT, TriColor::Red);
+
+
     let _ = Text::with_text_style(
         "Hello World!",
         Point::new(8, 68),
-        style,
+        red_style,
         TextStyle::default(),
     )
     .draw(&mut display);
@@ -98,11 +120,11 @@ fn main() -> ! {
         log::info!("Wake up!");
         driver.wake_up().unwrap();
 
-        display.clear(Color::White);
+        display.clear(TriColor::White);
 
         let mut string_buf = String::<30>::new();
         write!(string_buf, "Hello World {}!", n).unwrap();
-        let _ = Text::with_text_style(&string_buf, Point::new(8, 68), style, TextStyle::default())
+        let _ = Text::with_text_style(&string_buf, Point::new(8, 68), red_style, TextStyle::default())
             .draw(&mut display)
             .unwrap();
         string_buf.clear();
