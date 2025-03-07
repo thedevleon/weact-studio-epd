@@ -78,13 +78,13 @@ fn main() -> ! {
     driver.init().unwrap();
 
     let mut partial_display =
-    DisplayBlackWhite::<192, 128, { buffer_len::<Color>(192, 128) }>::new();
+    DisplayBlackWhite::<160, 64, { buffer_len::<Color>(160, 64) }>::new();
     partial_display.set_rotation(DisplayRotation::Rotate0);
 
     let style = MonoTextStyle::new(&PROFONT_24_POINT, Color::Black);
     let _ = Text::with_text_style(
         "Hello World!",
-        Point::new(18, 68),
+        Point::new(0, 32),
         style,
         TextStyle::default(),
     )
@@ -103,13 +103,13 @@ fn main() -> ! {
 
         let mut string_buf = String::<30>::new();
         write!(string_buf, "Update {}!", n).unwrap();
-        let _ = Text::with_text_style(&string_buf, Point::new(160, 32), style, TextStyleBuilder::new().alignment(Alignment::Right).build())
+        let _ = Text::with_text_style(&string_buf, Point::new(0, 32), style, TextStyleBuilder::new().alignment(Alignment::Left).build())
             .draw(&mut partial_display)
             .unwrap();
         string_buf.clear();
 
         driver.wake_up().unwrap();
-        driver.fast_partial_update(&partial_display, 0, 156).unwrap();
+        driver.fast_partial_update(&partial_display, 0, 32).unwrap();
 
         n = n.wrapping_add(1); // Wrap from 0..255
 
