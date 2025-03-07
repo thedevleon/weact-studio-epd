@@ -163,8 +163,12 @@ fn main() -> ! {
             // 4.2" B/W
             // driver.fast_partial_update(&partial_display, 0, 32).unwrap();
 
+            // 1.54" B/W
+            // TODO: Figure out why the x is inverted
+            driver.fast_partial_update(&partial_display, 104, 0).unwrap();
+
             // 2.9" B/W and 1.54" B/W
-            driver.fast_partial_update(&partial_display, 32, 0).unwrap();
+            // driver.fast_partial_update(&partial_display, 32, 0).unwrap();
         }
 
         n = n.wrapping_add(1); // Wrap from 0..255
