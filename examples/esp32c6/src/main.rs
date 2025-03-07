@@ -22,9 +22,9 @@ use esp_hal::{
 };
 use heapless::String;
 use profont::PROFONT_24_POINT;
-use weact_studio_epd::{graphics::DisplayRotation, WeActStudio420BlackWhiteDriver, WeActStudio290BlackWhiteDriver};
+use weact_studio_epd::{graphics::DisplayRotation, WeActStudio420BlackWhiteDriver, WeActStudio290BlackWhiteDriver, WeActStudio154BlackWhiteDriver};
 use weact_studio_epd::{
-    graphics::{buffer_len, Display420BlackWhite, Display290BlackWhite, DisplayBlackWhite},
+    graphics::{buffer_len, Display420BlackWhite, Display290BlackWhite, Display154BlackWhite, DisplayBlackWhite},
     Color,
 };
 
@@ -74,24 +74,29 @@ fn main() -> ! {
     log::info!("Intializing EPD...");
 
     // 4.2" B/W
-    let mut driver = WeActStudio420BlackWhiteDriver::new(spi_interface, busy, rst, delay);
-    let mut display = Display420BlackWhite::new();
-    display.set_rotation(DisplayRotation::Rotate0);
+    // let mut driver = WeActStudio420BlackWhiteDriver::new(spi_interface, busy, rst, delay);
+    // let mut display = Display420BlackWhite::new();
+    // display.set_rotation(DisplayRotation::Rotate0);
 
     // 2.9" B/W
     // let mut driver = WeActStudio290BlackWhiteDriver::new(spi_interface, busy, rst, delay);
     // let mut display = Display290BlackWhite::new();
     // display.set_rotation(DisplayRotation::Rotate90);
 
+    // 1.54" B/W
+    let mut driver = WeActStudio154BlackWhiteDriver::new(spi_interface, busy, rst, delay);
+    let mut display = Display154BlackWhite::new();
+    display.set_rotation(DisplayRotation::Rotate90);
+
     driver.init().unwrap();
 
-    // 4.2" B/W
-    let mut partial_display = DisplayBlackWhite::<196, 64, { buffer_len::<Color>(196, 64) }>::new();
-    partial_display.set_rotation(DisplayRotation::Rotate0);
+    // 4.2" B/W 
+    // let mut partial_display = DisplayBlackWhite::<196, 64, { buffer_len::<Color>(196, 64) }>::new();
+    // partial_display.set_rotation(DisplayRotation::Rotate0);
 
-    // 2.9" B/W
-    // let mut partial_display = DisplayBlackWhite::<64, 196, { buffer_len::<Color>(64, 196) }>::new();
-    // partial_display.set_rotation(DisplayRotation::Rotate90);
+    // 2.9" B/W and 1.54" B/W
+    let mut partial_display = DisplayBlackWhite::<64, 196, { buffer_len::<Color>(64, 196) }>::new();
+    partial_display.set_rotation(DisplayRotation::Rotate90);
 
     let style = MonoTextStyle::new(&PROFONT_24_POINT, Color::Black);
     let _ = Text::with_text_style(
@@ -156,10 +161,10 @@ fn main() -> ! {
             string_buf.clear();
 
             // 4.2" B/W
-            driver.fast_partial_update(&partial_display, 0, 32).unwrap();
+            // driver.fast_partial_update(&partial_display, 0, 32).unwrap();
 
-            // 2.9" B/W
-            // driver.fast_partial_update(&partial_display, 32, 0).unwrap();
+            // 2.9" B/W and 1.54" B/W
+            driver.fast_partial_update(&partial_display, 32, 0).unwrap();
         }
 
         n = n.wrapping_add(1); // Wrap from 0..255

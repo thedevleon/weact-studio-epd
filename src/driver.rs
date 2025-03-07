@@ -35,6 +35,9 @@ pub type WeActStudio213BlackWhiteDriver<DI, BSY, RST, DELAY> =
 /// Display driver for the WeAct Studio 2.13 inch Tri-Color display.
 pub type WeActStudio213TriColorDriver<DI, BSY, RST, DELAY> =
     DisplayDriver<DI, BSY, RST, DELAY, 128, 122, 250, TriColor>;
+/// Display driver for the WeAct Studio 1.54 inch B/W display.
+pub type WeActStudio154BlackWhiteDriver<DI, BSY, RST, DELAY> =
+    DisplayDriver<DI, BSY, RST, DELAY, 200, 200, 200, Color>;
 
 /// The main driver struct that manages the communication with the display.
 ///
@@ -112,7 +115,7 @@ where
         self.command_with_data(command::DATA_ENTRY_MODE, &[flag::DATA_ENTRY_INCRY_INCRX])
             .await?;
 
-        // specifc code for 4.2" display
+        // 4.2" display
         if WIDTH == 400 && HEIGHT == 300 {
             self.command_with_data(command::DISPLAY_UPDATE_CONTROL, &[0x40, 0x00])
                 .await?;
@@ -121,7 +124,18 @@ where
                 &[flag::BORDER_WAVEFORM_LUT1],
             )
             .await?;
-        } else {
+        }
+        // 1.54" display
+        else if WIDTH == 200 && HEIGHT == 200 {
+             // command::DISPLAY_UPDATE_CONTROL is not used
+             self.command_with_data(
+                command::BORDER_WAVEFORM_CONTROL,
+                &[flag::BORDER_WAVEFORM_LUT1],
+            )
+            .await?;
+        } 
+        // 2.9" and 2.13" displays
+        else {
             self.command_with_data(command::DISPLAY_UPDATE_CONTROL, &[0x00, 0x80])
                 .await?;
             self.command_with_data(
@@ -231,8 +245,18 @@ where
     pub async fn full_refresh(&mut self) -> Result<()> {
         self.initial_full_refresh_done = true;
         self.using_partial_mode = false;
-        self.command_with_data(command::UPDATE_DISPLAY_CTRL2, &[flag::DISPLAY_MODE_1])
+
+        // 1.54" display
+        if WIDTH == 200 && HEIGHT == 200 {
+            self.command_with_data(command::UPDATE_DISPLAY_CTRL2, &[flag::DISPLAY_MODE_FULL_REFRESH_VARIANT])
             .await?;
+        }
+        // 4.2", 2.9" and 2.13" displays
+        else {
+            self.command_with_data(command::UPDATE_DISPLAY_CTRL2, &[flag::DISPLAY_MODE_FULL_REFRESH])
+            .await?;
+        }
+
         self.command(command::MASTER_ACTIVATE).await?;
         self.wait_until_idle().await;
         Ok(())
@@ -388,6 +412,7 @@ where
         }
 
         if !self.using_partial_mode {
+            // 4.2" display
             if WIDTH == 400 && HEIGHT == 300 {
                 self.command_with_data(
                     command::BORDER_WAVEFORM_CONTROL,
@@ -397,7 +422,13 @@ where
     
                 self.command_with_data(command::DISPLAY_UPDATE_CONTROL, &[0x00, 0x00])
                 .await?;
-            } else {
+            } 
+            // 1.54" display
+            else if WIDTH == 200 && HEIGHT == 200 {
+                // Nothing to do here
+            } 
+            // 2.9" and 2.13" displays
+            else {
                 self.command_with_data(command::WRITE_LUT, &lut::LUT_PARTIAL_UPDATE)
                 .await?;
             }
@@ -405,12 +436,19 @@ where
             self.using_partial_mode = true;
         }
         
+        // 4.2" display
         if WIDTH == 400 && HEIGHT == 300 {
-            self.command_with_data(command::UPDATE_DISPLAY_CTRL2, &[flag::DISPLAY_MODE_2])
+            self.command_with_data(command::UPDATE_DISPLAY_CTRL2, &[flag::DISPLAY_MODE_FAST_REFRESH])
                 .await?;
-
-        } else {
-            self.command_with_data(command::UPDATE_DISPLAY_CTRL2, &[flag::DISPLAY_MODE_LUT])
+        } 
+        // 1.54" display
+        else if WIDTH == 200 && HEIGHT == 200 {
+            self.command_with_data(command::UPDATE_DISPLAY_CTRL2, &[flag::DISPLAY_MODE_FAST_REFRESH_VARIANT])
+                .await?;
+        }
+        // 2.9" and 2.13" displays
+        else {
+            self.command_with_data(command::UPDATE_DISPLAY_CTRL2, &[flag::DISPLAY_MODE_FAST_REFRESH_LUT])
                 .await?;
         }
 
