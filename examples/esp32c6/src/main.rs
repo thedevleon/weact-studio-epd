@@ -78,13 +78,13 @@ fn main() -> ! {
     driver.init().unwrap();
 
     let mut partial_display =
-    DisplayBlackWhite::<64, 128, { buffer_len::<Color>(64, 128) }>::new();
+    DisplayBlackWhite::<192, 128, { buffer_len::<Color>(192, 128) }>::new();
     partial_display.set_rotation(DisplayRotation::Rotate0);
 
     let style = MonoTextStyle::new(&PROFONT_24_POINT, Color::Black);
     let _ = Text::with_text_style(
         "Hello World!",
-        Point::new(8, 68),
+        Point::new(18, 68),
         style,
         TextStyle::default(),
     )
@@ -92,9 +92,9 @@ fn main() -> ! {
 
     driver.full_update(&display).unwrap();
 
-    log::info!("Sleeping for 5s...");
+    log::info!("Sleeping for 2s...");
     driver.sleep().unwrap();
-    delay.delay(5_000.millis());
+    delay.delay(2_000.millis());
 
     let mut n:u8 = 0;
     loop {
@@ -103,18 +103,18 @@ fn main() -> ! {
 
         let mut string_buf = String::<30>::new();
         write!(string_buf, "Update {}!", n).unwrap();
-        let _ = Text::with_text_style(&string_buf, Point::new(128, 32), style, TextStyleBuilder::new().alignment(Alignment::Right).build())
+        let _ = Text::with_text_style(&string_buf, Point::new(160, 32), style, TextStyleBuilder::new().alignment(Alignment::Right).build())
             .draw(&mut partial_display)
             .unwrap();
         string_buf.clear();
 
         driver.wake_up().unwrap();
-        driver.fast_partial_update(&partial_display, 56, 156).unwrap();
+        driver.fast_partial_update(&partial_display, 0, 156).unwrap();
 
         n = n.wrapping_add(1); // Wrap from 0..255
 
-        log::info!("Sleeping for 5s...");
+        log::info!("Sleeping for 2s...");
         driver.sleep().unwrap();
-        delay.delay(5_000.millis());
+        delay.delay(2_000.millis());
     }
 }

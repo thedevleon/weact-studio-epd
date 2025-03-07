@@ -216,6 +216,12 @@ where
         self.initial_full_refresh_done = true;
         self.using_partial_mode = false;
 
+        // only for 4.2" b/w display
+        if WIDTH == 400 && HEIGHT == 300 {
+            self.command_with_data(command::DISPLAY_UPDATE_CONTROL, &[0x40, 0x00])
+                .await?;
+        }
+
         self.command_with_data(command::UPDATE_DISPLAY_CTRL2, &[flag::DISPLAY_MODE_1])
             .await?;
         self.command(command::MASTER_ACTIVATE).await?;
@@ -377,8 +383,16 @@ where
                 .await?;
             self.using_partial_mode = true;
         }
-        self.command_with_data(command::UPDATE_DISPLAY_CTRL2, &[flag::UNDOCUMENTED])
-            .await?;
+
+        // only for 4.2" b/w display
+        if WIDTH == 400 && HEIGHT == 300 {
+            self.command_with_data(command::DISPLAY_UPDATE_CONTROL, &[0x00, 0x00]).await?;
+            self.command_with_data(command::UPDATE_DISPLAY_CTRL2, &[flag::UNDOCUMENTED2]).await?;
+        }
+        else {
+            self.command_with_data(command::UPDATE_DISPLAY_CTRL2, &[flag::UNDOCUMENTED]).await?;
+        }
+        
         self.command(command::MASTER_ACTIVATE).await?;
         self.wait_until_idle().await;
         Ok(())
@@ -417,10 +431,10 @@ where
         self.write_partial_bw_buffer(buffer, x, y, width, height)
             .await?;
         self.fast_refresh().await?;
-        self.write_partial_red_buffer(buffer, x, y, width, height)
-            .await?;
-        self.write_partial_bw_buffer(buffer, x, y, width, height)
-            .await?;
+        // self.write_partial_red_buffer(buffer, x, y, width, height)
+        //     .await?;
+        // self.write_partial_bw_buffer(buffer, x, y, width, height)
+        //     .await?;
         Ok(())
     }
 

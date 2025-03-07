@@ -16,6 +16,9 @@ mod flags {
     /// Together with the [`crate::lut::LUT_PARTIAL_UPDATE`] lut this yields much better looking
     /// quick refreshes.
     pub const UNDOCUMENTED: u8 = 0xCC;
+    /// Another undocumented value for the "Display Update Control 2 (`0x22`) command.
+    /// Seems to be needed for partial updates with the 4.2" b/w display.
+    pub const UNDOCUMENTED2: u8 = 0xFC;
 }
 
 pub(crate) use flags::*;
