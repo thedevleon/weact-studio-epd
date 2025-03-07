@@ -6,7 +6,7 @@ use display_interface_spi::SPIInterface;
 use embedded_graphics::{
     geometry::Point,
     mono_font::MonoTextStyle,
-    text::{Text, TextStyle, Alignment, TextStyleBuilder},
+    text::{Alignment, Text, TextStyle, TextStyleBuilder},
     Drawable,
 };
 use embedded_hal_bus::spi::ExclusiveDevice;
@@ -22,10 +22,10 @@ use esp_hal::{
 };
 use heapless::String;
 use profont::PROFONT_24_POINT;
-use weact_studio_epd::{graphics::{Display420BlackWhite, DisplayBlackWhite, buffer_len}, Color};
+use weact_studio_epd::{graphics::DisplayRotation, WeActStudio420BlackWhiteDriver, WeActStudio290BlackWhiteDriver};
 use weact_studio_epd::{
-    graphics::DisplayRotation,
-    WeActStudio420BlackWhiteDriver,
+    graphics::{buffer_len, Display420BlackWhite, Display290BlackWhite, DisplayBlackWhite},
+    Color,
 };
 
 #[entry]
@@ -72,14 +72,26 @@ fn main() -> ! {
 
     // Setup EPD
     log::info!("Intializing EPD...");
+
+    // 4.2" B/W
     let mut driver = WeActStudio420BlackWhiteDriver::new(spi_interface, busy, rst, delay);
     let mut display = Display420BlackWhite::new();
     display.set_rotation(DisplayRotation::Rotate0);
+
+    // 2.9" B/W
+    // let mut driver = WeActStudio290BlackWhiteDriver::new(spi_interface, busy, rst, delay);
+    // let mut display = Display290BlackWhite::new();
+    // display.set_rotation(DisplayRotation::Rotate90);
+
     driver.init().unwrap();
 
-    let mut partial_display =
-    DisplayBlackWhite::<160, 64, { buffer_len::<Color>(160, 64) }>::new();
+    // 4.2" B/W
+    let mut partial_display = DisplayBlackWhite::<196, 64, { buffer_len::<Color>(196, 64) }>::new();
     partial_display.set_rotation(DisplayRotation::Rotate0);
+
+    // 2.9" B/W
+    // let mut partial_display = DisplayBlackWhite::<64, 196, { buffer_len::<Color>(64, 196) }>::new();
+    // partial_display.set_rotation(DisplayRotation::Rotate90);
 
     let style = MonoTextStyle::new(&PROFONT_24_POINT, Color::Black);
     let _ = Text::with_text_style(
@@ -96,20 +108,59 @@ fn main() -> ! {
     driver.sleep().unwrap();
     delay.delay(2_000.millis());
 
-    let mut n:u8 = 0;
+    let mut n: u8 = 0;
     loop {
-        log::info!("Wake up!");
-        partial_display.clear(Color::White);
-
-        let mut string_buf = String::<30>::new();
-        write!(string_buf, "Update {}!", n).unwrap();
-        let _ = Text::with_text_style(&string_buf, Point::new(0, 32), style, TextStyleBuilder::new().alignment(Alignment::Left).build())
-            .draw(&mut partial_display)
-            .unwrap();
-        string_buf.clear();
 
         driver.wake_up().unwrap();
-        driver.fast_partial_update(&partial_display, 0, 32).unwrap();
+
+        if n % 8 == 0 {
+            log::info!("Full Update!");
+            display.clear(Color::White);
+
+            let _ = Text::with_text_style(
+                "Hello World!",
+                Point::new(0, 32),
+                style,
+                TextStyle::default(),
+            )
+            .draw(&mut display);
+
+            let mut string_buf = String::<30>::new();
+            write!(string_buf, "Full ({})", n).unwrap();
+            let _ = Text::with_text_style(
+                &string_buf,
+                Point::new(0, 64),
+                style,
+                TextStyleBuilder::new().alignment(Alignment::Left).build(),
+            )
+            .draw(&mut display)
+            .unwrap();
+            string_buf.clear();
+
+            driver.full_update(&display).unwrap();
+        }
+        else {
+            log::info!("Partial Update!");
+            partial_display.clear(Color::White);
+    
+            let mut string_buf = String::<30>::new();
+            write!(string_buf, "Partial ({})", n).unwrap();
+            let _ = Text::with_text_style(
+                &string_buf,
+                Point::new(0, 32),
+                style,
+                TextStyleBuilder::new().alignment(Alignment::Left).build(),
+            )
+            .draw(&mut partial_display)
+            .unwrap();
+            string_buf.clear();
+
+            // 4.2" B/W
+            driver.fast_partial_update(&partial_display, 0, 32).unwrap();
+
+            // 2.9" B/W
+            // driver.fast_partial_update(&partial_display, 32, 0).unwrap();
+        }
 
         n = n.wrapping_add(1); // Wrap from 0..255
 
