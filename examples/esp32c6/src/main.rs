@@ -99,7 +99,7 @@ fn main() -> ! {
     // )
     // .draw(&mut display);
 
-    let bmp_data = include_bytes!("../img/card_contrast.bmp");
+    let bmp_data = include_bytes!("../img/card2.bmp");
     let bmp = Bmp::<TriColor>::from_slice(bmp_data).unwrap();
     Image::new(&bmp, Point::zero()).draw(&mut display.color_converted()).unwrap();
     driver.full_update(&display).unwrap();
