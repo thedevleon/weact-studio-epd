@@ -1,13 +1,14 @@
 #![no_std]
 #![no_main]
 
-use core::fmt::Write;
 use display_interface_spi::SPIInterface;
 use embedded_graphics::{
     geometry::Point,
     mono_font::MonoTextStyle,
     text::{Alignment, Text, TextStyle, TextStyleBuilder},
     Drawable,
+    prelude::*,
+    image::Image,
 };
 use embedded_hal_bus::spi::ExclusiveDevice;
 use esp_backtrace as _;
@@ -20,13 +21,13 @@ use esp_hal::{
     spi::{master::Spi, SpiMode},
     system::SystemControl,
 };
-use heapless::String;
 use profont::PROFONT_24_POINT;
-use weact_studio_epd::{graphics::DisplayRotation, WeActStudio420BlackWhiteDriver, WeActStudio290BlackWhiteDriver, WeActStudio154BlackWhiteDriver};
+use weact_studio_epd::{graphics::DisplayRotation, WeActStudio290TriColorDriver};
 use weact_studio_epd::{
-    graphics::{buffer_len, Display420BlackWhite, Display290BlackWhite, Display154BlackWhite, DisplayBlackWhite},
-    Color,
+    graphics::Display290TriColor,
+    TriColor,
 };
+use tinybmp::Bmp;
 
 #[entry]
 fn main() -> ! {
@@ -73,108 +74,42 @@ fn main() -> ! {
     // Setup EPD
     log::info!("Intializing EPD...");
 
-    // 4.2" B/W
-    // let mut driver = WeActStudio420BlackWhiteDriver::new(spi_interface, busy, rst, delay);
-    // let mut display = Display420BlackWhite::new();
-    // display.set_rotation(DisplayRotation::Rotate0);
-
-    // 2.9" B/W
-    // let mut driver = WeActStudio290BlackWhiteDriver::new(spi_interface, busy, rst, delay);
-    // let mut display = Display290BlackWhite::new();
-    // display.set_rotation(DisplayRotation::Rotate90);
-
-    // 1.54" B/W
-    let mut driver = WeActStudio154BlackWhiteDriver::new(spi_interface, busy, rst, delay);
-    let mut display = Display154BlackWhite::new();
+    // 2.9" B/W/R
+    let mut driver = WeActStudio290TriColorDriver::new(spi_interface, busy, rst, delay);
+    let mut display = Display290TriColor::new();
     display.set_rotation(DisplayRotation::Rotate90);
-
     driver.init().unwrap();
 
-    // 4.2" B/W 
-    // let mut partial_display = DisplayBlackWhite::<196, 64, { buffer_len::<Color>(196, 64) }>::new();
-    // partial_display.set_rotation(DisplayRotation::Rotate0);
+    // let black_style = MonoTextStyle::new(&PROFONT_24_POINT, TriColor::Black);
+    // let red_style = MonoTextStyle::new(&PROFONT_24_POINT, TriColor::Red);
 
-    // 2.9" B/W and 1.54" B/W
-    let mut partial_display = DisplayBlackWhite::<64, 196, { buffer_len::<Color>(64, 196) }>::new();
-    partial_display.set_rotation(DisplayRotation::Rotate90);
+    // let _ = Text::with_text_style(
+    //     "Hello World!",
+    //     Point::new(0, 32),
+    //     black_style,
+    //     TextStyle::default(),
+    // )
+    // .draw(&mut display);
 
-    let style = MonoTextStyle::new(&PROFONT_24_POINT, Color::Black);
-    let _ = Text::with_text_style(
-        "Hello World!",
-        Point::new(0, 32),
-        style,
-        TextStyle::default(),
-    )
-    .draw(&mut display);
+    // let _ = Text::with_text_style(
+    //     "Hello World!",
+    //     Point::new(0, 64),
+    //     red_style,
+    //     TextStyle::default(),
+    // )
+    // .draw(&mut display);
+
+    let bmp_data = include_bytes!("../img/card_contrast.bmp");
+    let bmp = Bmp::<TriColor>::from_slice(bmp_data).unwrap();
+    Image::new(&bmp, Point::zero()).draw(&mut display.color_converted()).unwrap();
+    driver.full_update(&display).unwrap();
 
     driver.full_update(&display).unwrap();
 
     log::info!("Sleeping for 2s...");
     driver.sleep().unwrap();
-    delay.delay(2_000.millis());
 
-    let mut n: u8 = 0;
     loop {
-
-        driver.wake_up().unwrap();
-
-        if n % 8 == 0 {
-            log::info!("Full Update!");
-            display.clear(Color::White);
-
-            let _ = Text::with_text_style(
-                "Hello World!",
-                Point::new(0, 32),
-                style,
-                TextStyle::default(),
-            )
-            .draw(&mut display);
-
-            let mut string_buf = String::<30>::new();
-            write!(string_buf, "Full ({})", n).unwrap();
-            let _ = Text::with_text_style(
-                &string_buf,
-                Point::new(0, 64),
-                style,
-                TextStyleBuilder::new().alignment(Alignment::Left).build(),
-            )
-            .draw(&mut display)
-            .unwrap();
-            string_buf.clear();
-
-            driver.full_update(&display).unwrap();
-        }
-        else {
-            log::info!("Partial Update!");
-            partial_display.clear(Color::White);
-    
-            let mut string_buf = String::<30>::new();
-            write!(string_buf, "Partial ({})", n).unwrap();
-            let _ = Text::with_text_style(
-                &string_buf,
-                Point::new(0, 32),
-                style,
-                TextStyleBuilder::new().alignment(Alignment::Left).build(),
-            )
-            .draw(&mut partial_display)
-            .unwrap();
-            string_buf.clear();
-
-            // 4.2" B/W
-            // driver.fast_partial_update(&partial_display, 0, 32).unwrap();
-
-            // 1.54" B/W
-            // TODO: Figure out why the x is inverted
-            driver.fast_partial_update(&partial_display, 104, 0).unwrap();
-
-            // 2.9" B/W and 1.54" B/W
-            // driver.fast_partial_update(&partial_display, 32, 0).unwrap();
-        }
-
-        n = n.wrapping_add(1); // Wrap from 0..255
-
-        log::info!("Sleeping for 2s...");
-        driver.sleep().unwrap();
         delay.delay(2_000.millis());
     }
 }
