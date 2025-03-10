@@ -21,13 +21,14 @@ use esp_hal::{
     spi::{master::Spi, SpiMode},
     system::SystemControl,
 };
-use profont::PROFONT_24_POINT;
-use weact_studio_epd::{graphics::DisplayRotation, WeActStudio290TriColorDriver};
 use weact_studio_epd::{
-    graphics::Display290TriColor,
+    WeActStudio290TriColorDriver,
+    graphics::{Display290TriColor, DisplayRotation},
     TriColor,
 };
-use tinybmp::Bmp;
+// use tinybmp::Bmp;
+use u8g2_fonts::{fonts::{u8g2_font_courB24_tf, u8g2_font_courR24_tf, u8g2_font_courR12_tf, u8g2_font_open_iconic_email_2x_t}, FontRenderer};
+
 
 #[entry]
 fn main() -> ! {
@@ -99,10 +100,63 @@ fn main() -> ! {
     // )
     // .draw(&mut display);
 
-    let bmp_data = include_bytes!("../img/card2.bmp");
-    let bmp = Bmp::<TriColor>::from_slice(bmp_data).unwrap();
-    Image::new(&bmp, Point::zero()).draw(&mut display.color_converted()).unwrap();
-    driver.full_update(&display).unwrap();
+    // let bmp_data = include_bytes!("../img/card2.bmp");
+    // let bmp = Bmp::<TriColor>::from_slice(bmp_data).unwrap();
+    // Image::new(&bmp, Point::zero()).draw(&mut display.color_converted()).unwrap();
+    // driver.full_update(&display).unwrap();
+
+    let font_bold = FontRenderer::new::<u8g2_font_courB24_tf>();
+    let font_thin = FontRenderer::new::<u8g2_font_courR24_tf>();
+    let font_small_thin = FontRenderer::new::<u8g2_font_courR12_tf>();
+    let font_email = FontRenderer::new::<u8g2_font_open_iconic_email_2x_t>();
+
+    let center = display.bounding_box().center();
+    let bottom = display.bounding_box().bottom_right().unwrap() - Point::new(148, 0);
+
+    font_bold.render_aligned(
+        "Leon",
+        center - Point::new(54, 40),
+        u8g2_fonts::types::VerticalPosition::Center,
+        u8g2_fonts::types::HorizontalAlignment::Center,
+        u8g2_fonts::types::FontColor::Transparent(TriColor::Black),
+        &mut display
+    ).unwrap();
+
+    font_thin.render_aligned(
+        "Müller",
+        center - Point::new(-54, 40),
+        u8g2_fonts::types::VerticalPosition::Center,
+        u8g2_fonts::types::HorizontalAlignment::Center,
+        u8g2_fonts::types::FontColor::Transparent(TriColor::Black),
+        &mut display
+    ).unwrap();
+
+    font_small_thin.render_aligned(
+        "EMBEDDED ENGINEER\nHARDWARE·FIRMWARE·IOT·AI\nKiCAD·RUST·C·PYTHON·CAD",
+        center + Point::new(0, 8),
+        u8g2_fonts::types::VerticalPosition::Center,
+        u8g2_fonts::types::HorizontalAlignment::Center,
+        u8g2_fonts::types::FontColor::Transparent(TriColor::Red),
+        &mut display
+    ).unwrap();
+
+    font_small_thin.render_aligned(
+        "hello@devleon.com",
+        bottom - Point::new(-18, 6),
+        u8g2_fonts::types::VerticalPosition::Bottom,
+        u8g2_fonts::types::HorizontalAlignment::Center,
+        u8g2_fonts::types::FontColor::Transparent(TriColor::Black),
+        &mut display
+    ).unwrap();
+
+    font_email.render_aligned(
+        "@",
+        bottom - Point::new(80, 6),
+        u8g2_fonts::types::VerticalPosition::Bottom,
+        u8g2_fonts::types::HorizontalAlignment::Center,
+        u8g2_fonts::types::FontColor::Transparent(TriColor::Black),
+        &mut display
+    ).unwrap();
 
     driver.full_update(&display).unwrap();
 
